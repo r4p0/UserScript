@@ -11,6 +11,7 @@
 | 脚本名称 | 脚本功能 | 下载安装 |
 | :-------- | :-------- | :--------: |
 | 去除无限debugger | 解除部分网站应定时生成debugger方法无法进行调试 | [![](https://img.shields.io/badge/install-v0.0.1-red)](https://r4p0.github.io/UserScript/disable_infinite_debugger.user.js) |
+| 去除灰色 | 解除所有网站灰色Filter | [![](https://img.shields.io/badge/install-v0.0.1-red)](https://r4p0.github.io/UserScript/disable_gray.user.js) |
 
 ## 使用说明 ##
 
