@@ -7,8 +7,8 @@
 // @match        *://***/*
 // @supportURL   https://github.com/r4p0/UserScript
 // @homepageURL  https://github.com/r4p0/UserScript
-// @updateURL    https://r4p0.github.io/UserScript/disable_infinite_debugger.user.js
-// @downloadURL  https://r4p0.github.io/UserScript/disable_infinite_debugger.user.js
+// @updateURL    https://r4p0.github.io/UserScript/disable_gray.user.js
+// @downloadURL  https://r4p0.github.io/UserScript/disable_gray.user.js
 // @run-at       document-end
 // @grant        GM_addStyle
 // ==/UserScript==
