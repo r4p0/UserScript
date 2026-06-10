@@ -4,7 +4,7 @@
 // @namespace    https://r4p0.github.io/
 // @updateURL    https://r4p0.github.io/UserScript/github_repo_size_display.meta.js
 // @downloadURL  https://r4p0.github.io/UserScript/github_repo_size_display.user.js
-// @version      0.1.1
+// @version      0.1.2
 // @description  在 GitHub 仓库标题处显示仓库文件总大小，取自 api.github.com/repos/{owner}/{repo}，基于 React embeddedData 缓存
 // @author       r4p0
 // @match        https://github.com/*
@@ -115,6 +115,31 @@
                 url: `https://api.github.com/repos/${owner}/${repo}`,
                 headers,
                 onload(res) {
+                    if (typeof res.getResponseHeader !== 'function') {
+
+                        /**
+                         * 
+                         * @param {string} key 
+                         * @returns 
+                         */
+                        res.getResponseHeader = function (key) {
+                            /** @type {Record<string,string>}*/
+                            let __responseHeadersDict__ = res.__responseHeadersDict__;
+                            if (!__responseHeadersDict__) {
+                                __responseHeadersDict__ = {};
+                                const responseHeaders = res.responseHeaders;
+                                if (typeof responseHeaders === 'string') {
+                                    responseHeaders.split('\n').forEach(h => {
+                                        const [name, value] = h.split(':');
+                                        __responseHeadersDict__[name.trim().toLowerCase()] = value.trim();
+                                    });
+                                }
+                                res.__responseHeadersDict__ = __responseHeadersDict__;
+                            }
+                            return __responseHeadersDict__[key.trim().toLowerCase()];
+                        }
+                    }
+
                     const remaining = res.getResponseHeader('X-RateLimit-Remaining');
                     const limit = res.getResponseHeader('X-RateLimit-Limit');
 
