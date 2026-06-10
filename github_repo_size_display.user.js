@@ -1,7 +1,9 @@
 // ==UserScript==
 // @name         GitHub Repo Size Display
 // @name:zh-CN   GitHub 仓库文件总大小显示
-// @namespace    http://tampermonkey.net/
+// @namespace    https://r4p0.github.io/
+// @updateURL    https://r4p0.github.io/UserScript/github_repo_size_display.meta.js
+// @downloadURL  https://r4p0.github.io/UserScript/github_repo_size_display.user.js
 // @version      0.1
 // @description  在 GitHub 仓库标题处显示仓库文件总大小，取自 api.github.com/repos/{owner}/{repo}，基于 React embeddedData 缓存
 // @author       r4p0
