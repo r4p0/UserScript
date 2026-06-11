@@ -4,7 +4,7 @@
 // @namespace    https://r4p0.github.io/
 // @updateURL    https://r4p0.github.io/UserScript/github_repo_size_display.meta.js
 // @downloadURL  https://r4p0.github.io/UserScript/github_repo_size_display.user.js
-// @version      0.1.2
+// @version      0.1.3
 // @description  在 GitHub 仓库标题处显示仓库文件总大小，取自 api.github.com/repos/{owner}/{repo}，基于 React embeddedData 缓存
 // @author       r4p0
 // @match        https://github.com/*
@@ -99,7 +99,35 @@
     }
 
     function getGitHubTheme() {
-        if (document.documentElement.classList.contains('dark')) return 'dark';
+        // 方法1：检查 html 元素的 class
+        const htmlClass = document.documentElement.className;
+        if (htmlClass.includes('dark') || htmlClass.includes('dark-theme')) {
+            console.log(`getGitHubTheme: dark by htmlClass`);
+            return 'dark';
+        }
+
+        // 方法2：检查 data-color-mode 属性
+        const colorMode = document.documentElement.getAttribute('data-color-mode');
+        if (colorMode === 'dark') {
+            console.log(`getGitHubTheme: dark by colorMode`);
+            return 'dark';
+        }
+
+        // 方法3：检查 body 的背景色
+        const bodyBgColor = window.getComputedStyle(document.body).backgroundColor;
+        // 如果是深色背景（RGB值较低）
+        if (bodyBgColor) {
+            const rgb = bodyBgColor.match(/\d+/g);
+            if (rgb && rgb.length >= 3) {
+                const brightness = (parseInt(rgb[0]) + parseInt(rgb[1]) + parseInt(rgb[2])) / 3;
+                if (brightness < 100) { // 如果平均亮度小于100，认为是深色主题
+                    console.log(`getGitHubTheme: dark by brightness`);
+                    return 'dark';
+                }
+            }
+        }
+
+        // 默认为浅色主题
         return 'light';
     }
     // #endregion
