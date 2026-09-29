@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build & Cache
+public/
+.cache/
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor & Tools
+.vscode/
+.idea/
+*.swp
+*.swo
+.superpowers/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
