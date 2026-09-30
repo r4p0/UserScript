@@ -17,7 +17,7 @@
 | bilibili_printscreen | bilibili 页面截图脚本 | [![](https://img.shields.io/badge/install-v0.0.1-red)](https://r4p0.github.io/UserScript/bilibili_printscreen.user.js) |
 | catcake-filter-saver | 持久化猫猫糕筛选和排序配置 | [![](https://img.shields.io/badge/install-v0.0.1-red)](https://r4p0.github.io/UserScript/catcake-filter-saver.user.js) |
 | GitHub 仓库文件总大小显示 | 在 GitHub 仓库标题处显示仓库文件总大小 | [![](https://img.shields.io/badge/install-v0.1.3-red)](https://r4p0.github.io/UserScript/github_repo_size_display.user.js) |
-| GitHub 仓库快捷跳转 | 在 GitHub 仓库顶部操作栏添加 GitDiagram、Gitingest、DeepWiki、GitHub1s、ZRead 快捷跳转按钮组 | [![](https://img.shields.io/badge/install-v0.1.0-red)](https://r4p0.github.io/UserScript/github_quick_links.user.js) |
+| GitHub 仓库快捷跳转 | 在 GitHub 仓库顶部操作栏添加 GitDiagram、Gitingest、DeepWiki、GitHub1s、ZRead 快捷跳转按钮组 | [![](https://img.shields.io/badge/install-v0.1.1-red)](https://r4p0.github.io/UserScript/github_quick_links.user.js) |
 | Goto GitHub Repo | 在 GitHub Pages 站点上添加可移动按钮，跳转到对应 GitHub 项目主页 | [![](https://img.shields.io/badge/install-v0.1.0-red)](https://r4p0.github.io/UserScript/goto_github_repo.user.js) |
 
 ## 使用说明 ##

@@ -2,7 +2,7 @@
 // @name         GitHub Quick Links
 // @name:zh-CN   GitHub 仓库快捷跳转 (GitDiagram / Gitingest / DeepWiki / GitHub1s / ZRead)
 // @namespace    https://r4p0.github.io/
-// @version      0.1.0
+// @version      0.1.1
 // @description  Add quick jump buttons (GitDiagram, Gitingest, DeepWiki, GitHub1s, ZRead) to GitHub repository header action bar
 // @description:zh-CN  在 GitHub 仓库顶部操作栏添加 GitDiagram、Gitingest、DeepWiki、GitHub1s、ZRead 快捷跳转按钮组
 // @author       r4p0
@@ -19,6 +19,7 @@
     'use strict';
 
     const CONTAINER_ID = 'gh-quick-links-container';
+    const STYLE_ID = 'gh-quick-links-style';
 
     // GitHub 顶层非仓库路由黑名单
     const RESERVED_OWNERS = new Set([
@@ -79,6 +80,69 @@
     ];
 
     /**
+     * 注入兼容新旧版 GitHub (Primer Classic & Primer React) 的按钮组样式
+     */
+    function ensureStyles() {
+        if (document.getElementById(STYLE_ID)) return;
+        const style = document.createElement('style');
+        style.id = STYLE_ID;
+        style.textContent = `
+#${CONTAINER_ID} {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    list-style: none;
+    max-width: 100%;
+}
+#${CONTAINER_ID} .gh-ql-btngroup {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    vertical-align: middle;
+}
+#${CONTAINER_ID} .gh-ql-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 20px;
+    white-space: nowrap;
+    text-decoration: none !important;
+    cursor: pointer;
+    user-select: none;
+    color: var(--button-default-fgColor-rest, var(--fgColor-default, var(--color-btn-text, #24292f)));
+    background-color: var(--button-default-bgColor-rest, var(--bgColor-muted, var(--color-btn-bg, #f6f8fa)));
+    border: 1px solid var(--button-default-borderColor-rest, var(--borderColor-default, var(--color-btn-border, rgba(31,35,40,0.15))));
+    box-shadow: var(--button-default-shadow-resting, var(--color-btn-shadow, 0 1px 0 rgba(31,35,40,0.04)));
+    transition: background-color 80ms cubic-bezier(0.33, 1, 0.68, 1), border-color 80ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+#${CONTAINER_ID} .gh-ql-btn:hover {
+    background-color: var(--button-default-bgColor-hover, var(--color-btn-hover-bg, #f3f4f6));
+    border-color: var(--button-default-borderColor-hover, var(--borderColor-default, var(--color-btn-hover-border, rgba(31,35,40,0.15))));
+    color: var(--button-default-fgColor-rest, var(--fgColor-default, var(--color-btn-text, #24292f)));
+    text-decoration: none !important;
+    z-index: 2;
+}
+#${CONTAINER_ID} .gh-ql-btn:first-child {
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+}
+#${CONTAINER_ID} .gh-ql-btn:last-child {
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+#${CONTAINER_ID} .gh-ql-btn:not(:first-child) {
+    margin-left: -1px;
+}
+`;
+        (document.head || document.documentElement).appendChild(style);
+    }
+
+    /**
      * 解析 GitHub URL 路径上下文
      * @param {string} [pathname]
      * @returns {{ owner: string, repo: string, treePath: string } | null}
@@ -88,7 +152,6 @@
         const cleanPath = pathname.replace(/\/+$/, '');
         const match = cleanPath.match(/^\/([^/]+)\/([^/]+)(?:\/(tree\/.+))?$/);
         if (!match) {
-            // 若路径包含非 tree 子路由（或超过两级且不是 tree），仍提取前两级以供主页判断
             const baseMatch = cleanPath.match(/^\/([^/]+)\/([^/]+)/);
             if (!baseMatch) return null;
             const owner = baseMatch[1];
@@ -119,15 +182,13 @@
         }
 
         const colorMode = docEl.getAttribute('data-color-mode');
-        if (colorMode === 'dark') {
-            return 'dark';
-        }
-        if (colorMode === 'auto') {
-            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (prefersDark) return 'dark';
+        if (colorMode === 'dark') return 'dark';
+        if (colorMode === 'light') return 'light';
+        if (colorMode === 'auto' && typeof window !== 'undefined' && window.matchMedia) {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
 
-        if (document.body) {
+        if (document.body && typeof window !== 'undefined' && window.getComputedStyle) {
             const bodyBgColor = window.getComputedStyle(document.body).backgroundColor;
             if (bodyBgColor) {
                 const rgb = bodyBgColor.match(/\d+/g);
@@ -144,15 +205,64 @@
     }
 
     /**
-     * 查找可见的顶部操作栏列表 (#repository-details-container ul.pagehead-actions)
-     * @returns {HTMLUListElement | null}
+     * 判断 DOM 元素是否可见
+     * @param {Element | null} el
+     * @returns {boolean}
+     */
+    function isElementVisible(el) {
+        if (!el || el.hidden) return false;
+        if (el.closest('[hidden]')) return false;
+        if (typeof el.getClientRects === 'function' && el.getClientRects().length > 0) {
+            return true;
+        }
+        return Boolean(el.offsetParent !== null);
+    }
+
+    /**
+     * 查找可见的顶部操作栏容器
+     * 同时兼容：
+     * 1. 登录态新版 React Overview Header (宽屏 >=768px): ul[data-testid="repo-header-actions"]
+     * 2. 登录态新版 React Overview Header (窄屏 <768px): div[data-testid="responsive-social-buttons"] 的外层换行容器
+     * 3. 未登录/经典版 Pagehead Actions (宽屏 >=768px): #repository-details-container ul.pagehead-actions
+     * 4. 未登录/经典版 Header (窄屏 <768px): #responsive-meta-container 或 #repository-details-container
+     * @returns {HTMLElement | null}
      */
     function findVisibleActionsList() {
-        const detailsContainer = document.getElementById('repository-details-container');
-        if (!detailsContainer || detailsContainer.hidden) return null;
-        if (detailsContainer.offsetParent === null) return null;
+        // 1. 新版 React CodeView Header (登录态宽屏 >=768px 布局)
+        const reactActions = document.querySelectorAll('ul[data-testid="repo-header-actions"]');
+        for (const list of reactActions) {
+            if (isElementVisible(list)) {
+                return list;
+            }
+        }
 
-        return detailsContainer.querySelector('ul.pagehead-actions');
+        // 2. 新版 React CodeView Header (登录态窄屏 <768px 响应式布局)
+        const narrowSocial = document.querySelectorAll('div[data-testid="responsive-social-buttons"]');
+        for (const box of narrowSocial) {
+            if (isElementVisible(box)) {
+                return box.parentElement || box;
+            }
+        }
+
+        // 3. 经典 #repository-details-container ul.pagehead-actions (未登录态宽屏 >=768px 布局)
+        const detailsContainer = document.getElementById('repository-details-container');
+        if (detailsContainer && !detailsContainer.hidden && !detailsContainer.closest('[hidden]')) {
+            const classicList = detailsContainer.querySelector('ul.pagehead-actions');
+            if (isElementVisible(classicList)) {
+                return classicList;
+            }
+            // 4. 未登录态窄屏 (<768px) 时 ul.pagehead-actions 被 d-none d-md-inline 隐藏，挂载到 #responsive-meta-container 或 #repository-details-container
+            const responsiveMeta = document.getElementById('responsive-meta-container');
+            if (responsiveMeta && !responsiveMeta.hidden && !responsiveMeta.closest('[hidden]')) {
+                responsiveMeta.style.padding = '0 16px 12px';
+                return responsiveMeta;
+            }
+            if (isElementVisible(detailsContainer)) {
+                return detailsContainer;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -164,13 +274,12 @@
      */
     function createSiteButton(site, ctx, theme) {
         const a = document.createElement('a');
-        a.className = 'btn btn-sm BtnGroup-item d-inline-flex flex-items-center';
+        a.className = 'gh-ql-btn btn btn-sm BtnGroup-item';
         a.href = site.buildUrl(ctx);
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
         a.title = site.title;
         a.setAttribute('data-site-id', site.id);
-        a.style.gap = '4px';
 
         const svgNS = 'http://www.w3.org/2000/svg';
         const svg = document.createElementNS(svgNS, 'svg');
@@ -203,6 +312,8 @@
         const ctx = parseRepoContext(window.location.pathname);
         if (!ctx) return;
 
+        ensureStyles();
+
         const theme = getGitHubTheme();
         const stateKey = `${ctx.owner}/${ctx.repo}${ctx.treePath}::${theme}`;
 
@@ -211,7 +322,6 @@
             if (container.getAttribute('data-state-key') === stateKey) {
                 return;
             }
-            // 更新已有按钮的链接与主题图标颜色
             SITES.forEach(site => {
                 const btn = container.querySelector(`a[data-site-id="${site.id}"]`);
                 if (btn) {
@@ -226,18 +336,18 @@
             return;
         }
 
-        // 若存在残留旧节点则先清理
         if (container) {
             container.remove();
         }
 
-        container = document.createElement('li');
+        const tagName = actionsList.tagName === 'UL' ? 'li' : 'div';
+        container = document.createElement(tagName);
         container.id = CONTAINER_ID;
         container.className = 'd-inline-flex';
         container.setAttribute('data-state-key', stateKey);
 
         const btnGroup = document.createElement('div');
-        btnGroup.className = 'BtnGroup d-inline-flex';
+        btnGroup.className = 'gh-ql-btngroup BtnGroup d-inline-flex';
 
         SITES.forEach(site => {
             btnGroup.appendChild(createSiteButton(site, ctx, theme));
@@ -253,14 +363,6 @@
     function init() {
         renderQuickLinks();
 
-        // GitHub SPA (Turbo / PJAX / History) 导航监听
-        const navEvents = ['turbo:load', 'turbo:render', 'pjax:end'];
-        navEvents.forEach(evt => {
-            document.addEventListener(evt, renderQuickLinks);
-        });
-        window.addEventListener('popstate', renderQuickLinks);
-
-        // 轻量级 rAF 节流 MutationObserver，处理局部 DOM 水合替换与主题切换
         let scheduled = false;
         const scheduleRender = () => {
             if (scheduled) return;
@@ -271,23 +373,37 @@
             });
         };
 
-        if (document.body) {
-            const bodyObserver = new MutationObserver(scheduleRender);
-            bodyObserver.observe(document.body, { childList: true, subtree: true });
+        const navEvents = ['turbo:load', 'turbo:render', 'pjax:end'];
+        navEvents.forEach(evt => {
+            document.addEventListener(evt, renderQuickLinks);
+        });
+        window.addEventListener('popstate', renderQuickLinks);
+        window.addEventListener('resize', scheduleRender);
+
+        if (window.matchMedia) {
+            const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            const bpQuery = window.matchMedia('(min-width: 768px)');
+            if (typeof darkQuery.addEventListener === 'function') {
+                darkQuery.addEventListener('change', renderQuickLinks);
+            }
+            if (typeof bpQuery.addEventListener === 'function') {
+                bpQuery.addEventListener('change', renderQuickLinks);
+            }
         }
 
         if (document.documentElement) {
-            const themeObserver = new MutationObserver(scheduleRender);
-            themeObserver.observe(document.documentElement, {
+            const rootObserver = new MutationObserver(scheduleRender);
+            rootObserver.observe(document.documentElement, {
+                childList: true,
+                subtree: true,
                 attributes: true,
                 attributeFilter: ['class', 'data-color-mode', 'data-dark-theme', 'data-light-theme']
             });
         }
     }
 
-    // 兼容 Node.js 测试环境导出
     if (typeof module !== 'undefined' && module.exports) {
-        module.exports = { SITES, parseRepoContext };
+        module.exports = { SITES, parseRepoContext, findVisibleActionsList };
         return;
     }
 
